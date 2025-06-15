@@ -1,0 +1,5 @@
+# 예시 .gitignore
+*.log
+node_modules/
+.env
+/dist
