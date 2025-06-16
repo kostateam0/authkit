@@ -3,7 +3,7 @@ import passport from "passport";
 import "../auth/local.strategy";
 import "../auth/google.strategy";
 import "../auth/naver.strategy";
-import "../auth/twitter.strategy";
+// import "../auth/twitter.strategy";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

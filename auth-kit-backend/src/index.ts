@@ -5,6 +5,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRouter from "./routes/authRouter";
 import { initPassport } from "./config/passport";
+import adminRouter from "./routes/adminRouter";
+import userRouter from "./routes/userRouter";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger";
 
 dotenv.config();
 
@@ -33,6 +37,10 @@ export default function AuthKit(): express.Router {
 
   // /auth 라우터 연결
   router.use("/auth", authRouter);
+  router.use("/admin", adminRouter);
+  router.use("/user", userRouter);
+
+  router.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   return router;
 }

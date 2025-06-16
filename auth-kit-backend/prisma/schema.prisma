@@ -14,5 +14,7 @@ model User {
   provider String   @default("local") 
   name      String?
   role      String   @default("user")
+  isBanned  Boolean  @default(false)
+  refreshToken   String?  
   createdAt DateTime @default(now())
 }

@@ -1,102 +1,187 @@
-import { Router, Request, Response, NextFunction } from "express";
+// src/routes/authRouter.ts
+import { Router } from "express";
 import passport from "passport";
-import { registerUser } from "../services/authService";
-import { PrismaClient } from "@prisma/client";
+import {
+  loginSuccess,
+  loginFail,
+  register,
+  getCurrentUser,
+  logout,
+  googleCallback,
+  naverCallback,
+  refreshAccessToken,
+} from "../controllers/auth.controller";
+import { verifyToken } from "../middlewares/verifyToken";
 
 const router = Router();
-const prisma = new PrismaClient();
 
-// 로컬 로그인
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: 인증 관련 API
+ */
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: 로컬 로그인
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 로그인 성공 시 토큰과 유저 정보 반환
+ */
 router.post(
   "/login",
   passport.authenticate("local", { failureRedirect: "/auth/fail" }),
-  (req: Request, res: Response) => {
-    res.json({ message: "로그인 성공", user: req.user });
-  }
+  loginSuccess
 );
 
-// 로그인 실패
-router.get("/fail", (_req: Request, res: Response) => {
-  res.status(401).json({ message: "로그인 실패" });
-});
+/**
+ * @swagger
+ * /auth/fail:
+ *   get:
+ *     summary: 로그인 실패 응답
+ *     tags: [Auth]
+ *     responses:
+ *       401:
+ *         description: 로그인 실패 메시지
+ */
+router.get("/fail", loginFail);
 
-// 현재 로그인 상태 확인
-router.get(
-  "/me",
-  async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-    try {
-      // 1. 로그인 안 된 경우
-      if (!req.user) {
-        return res.status(401).json({ message: "로그인 필요" });
-      }
+/**
+ * @swagger
+ * /auth/token:
+ *   get:
+ *     summary: refreshToken으로 accessToken 재발급
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: 새 accessToken 반환
+ */
+router.get("/token", refreshAccessToken);
 
-      // 2. req.user에 타입 단언 적용
-      const userId = (req.user as Express.User).id;
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: 회원가입
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 회원가입 성공
+ */
+router.post("/register", register);
 
-      // 3. DB에서 사용자 정보 조회
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, email: true },
-      });
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: 로그인된 사용자 정보 조회
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 유저 정보 반환
+ */
+router.get("/me", verifyToken, getCurrentUser);
 
-      if (!user) return res.status(404).json({ message: "사용자 없음" });
+/**
+ * @swagger
+ * /auth/logout:
+ *   get:
+ *     summary: 로그아웃
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: 로그아웃 성공 메시지
+ */
+router.get("/logout", logout);
 
-      // 4. 사용자 정보 반환
-      res.json({ user });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-// 유저 등록
-router.post("/register", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await registerUser(email, password);
-    res.status(201).json({
-      message: "회원가입 성공",
-      user: { email: user.email, id: user.id },
-    });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-router.get("/logout", (req: Request, res: Response) => {
-  req.logout((err) => {
-    if (err) return res.status(500).json({ message: "로그아웃 실패" });
-    res.json({ message: "로그아웃 성공" });
-  });
-});
-
-// 구글 로그인 라우터
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: 구글 OAuth 로그인 시작
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: 구글 로그인 페이지로 리다이렉트
+ */
 router.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: 구글 OAuth 로그인 콜백
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: 로그인 후 리다이렉트
+ */
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/auth/fail",
-  }),
-  (req: Request, res: Response) => {
-    res.redirect("/auth/me");
-  }
+  passport.authenticate("google", { failureRedirect: "/auth/fail" }),
+  googleCallback[1]
 );
 
-// 네이버 로그인 라우터
+/**
+ * @swagger
+ * /auth/naver:
+ *   get:
+ *     summary: 네이버 OAuth 로그인 시작
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: 네이버 로그인 페이지로 리다이렉트
+ */
 router.get("/naver", passport.authenticate("naver"));
 
+/**
+ * @swagger
+ * /auth/naver/callback:
+ *   get:
+ *     summary: 네이버 OAuth 로그인 콜백
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: 로그인 후 리다이렉트
+ */
 router.get(
   "/naver/callback",
-  passport.authenticate("naver", {
-    failureRedirect: "/auth/fail",
-  }),
-  (req: Request, res: Response) => {
-    res.redirect("/auth/me");
-  }
+  passport.authenticate("naver", { failureRedirect: "/auth/fail" }),
+  naverCallback[1]
 );
 
 export default router;
