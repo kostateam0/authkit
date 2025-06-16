@@ -20,7 +20,7 @@ const options: swaggerJSDoc.Options = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ["./src/routes/*.ts"], // 라우터 파일 주석을 대상으로 문서 생성
+  apis: ["./node_modules/auth-kit-backend/dist/routes/*.js"], // 라우터 파일 주석을 대상으로 문서 생성
 };
 
 const swaggerSpec = swaggerJSDoc(options);

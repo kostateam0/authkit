@@ -4,11 +4,13 @@
     "module": "CommonJS",
     "rootDir": "./src",
     "outDir": "./dist",
+    "declaration": true,
+    "declarationDir": "./dist/types",
     "esModuleInterop": true,
     "strict": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "typeRoots": ["./types", "./node_modules/@types"] // 순서 주의!
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
   "include": ["src", "types"]
 }
