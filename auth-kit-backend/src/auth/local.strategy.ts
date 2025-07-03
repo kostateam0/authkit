@@ -23,7 +23,12 @@ passport.use(
           return done(null, false, { message: "비밀번호 불일치" });
         }
 
-        return done(null, user);
+        return done(null, {
+          id: user.id,          // ✅ passport.serializeUser에서 쓰기 위한 필드
+          email: user.email,    // ✅ 프론트나 deserializeUser에서 쓸 필드
+          // 필요한 경우 다른 필드도 추가 가능
+        });
+        
       } catch (err) {
         return done(err);
       }

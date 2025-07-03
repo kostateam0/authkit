@@ -1,4 +1,3 @@
-// src/routes/userRouter.ts
 import { Router } from "express";
 import { verifyToken } from "../middlewares/verifyToken";
 import {
@@ -92,5 +91,22 @@ router.post("/password", verifyToken, changePassword);
  *         description: 회원 탈퇴 완료
  */
 router.delete("/delete", verifyToken, deleteMyAccount);
+
+/**
+ * @swagger
+ * /user/logout:
+ *   post:
+ *     summary: 로그아웃
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 로그아웃 성공
+ */
+router.post("/logout", verifyToken, (req, res): void => {
+  res.clearCookie("refreshToken"); // refreshToken 쿠키가 있다면 제거
+  res.status(200).json({ message: "로그아웃 완료" });
+});
 
 export default router;
